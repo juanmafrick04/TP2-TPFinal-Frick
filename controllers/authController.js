@@ -1,13 +1,10 @@
-import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { registerUser, getUserByEmail } from "../models/User.js";
 
 export const register = async (req, res) => {
-  const { email, password, username } = req.body;
   try {
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const userData = { email, username, password: hashedPassword };
-    const result = await registerUser(userData);
+    const { email, password, username } = req.body;
+    const result = await registerUser({ email, username, password });
     res.status(201).json(result);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -15,8 +12,8 @@ export const register = async (req, res) => {
 };
 
 export const login = async (req, res) => {
-  const { email, password } = req.body;
   try {
+    const { email, password } = req.body;
     const user = await getUserByEmail(email);
     const isMatch = await bcrypt.compare(password, user.password);
 
@@ -33,3 +30,4 @@ export const login = async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 };
+

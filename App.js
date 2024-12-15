@@ -3,6 +3,8 @@ import dotenv from "dotenv";
 import cors from "cors";
 import authRoutes from "./routes/auth.js";
 import spotifyRoutes from "./routes/spotify.js";
+import playlistsRoutes from "./routes/playlists.js";
+import adminRoutes from "./routes/admin.js";
 
 dotenv.config();
 
@@ -12,8 +14,8 @@ app.use(express.json());
 
 app.use("/api/auth", authRoutes);
 app.use("/api/spotify", spotifyRoutes);
+app.use("/api/playlists", playlistsRoutes);
+app.use("/api/admin", adminRoutes);
 
-app.listen(process.env.PORT, () =>
-  console.log(`Server running on port ${process.env.PORT}`)
-);
-
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

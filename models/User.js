@@ -23,3 +23,12 @@ export const getUserByEmail = async (email) => {
   }
   return userDoc.data();
 };
+
+export const getUserRole = async (email) => {
+  const userDoc = await db.collection(USERS_COLLECTION).doc(email).get();
+  if (!userDoc.exists) {
+    throw new Error("User not found");
+  }
+  return userDoc.data().role;
+};
+

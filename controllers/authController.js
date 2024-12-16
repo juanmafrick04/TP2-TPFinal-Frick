@@ -3,11 +3,35 @@ import { registerUser, getUserByEmail } from "../models/User.js";
 
 export const register = async (req, res) => {
   try {
-    const { email, password, username } = req.body;
-    const result = await registerUser({ email, username, password });
-    res.status(201).json(result);
+    const { email, username, password } = req.body;
+
+    // Validar datos de entrada
+    if (!email || !username || !password) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
+
+    if (typeof email !== "string" || email.trim() === "") {
+      return res.status(400).json({ error: "Invalid email address" });
+    }
+
+    const userRef = db.collection("users").doc(email);
+    const userDoc = await userRef.get();
+
+    if (userDoc.exists) {
+      return res.status(400).json({ error: "User already exists" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await userRef.set({
+      email,
+      username,
+      password: hashedPassword,
+    });
+
+    res.status(201).json({ message: "User registered successfully" });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 };
 
@@ -55,7 +79,7 @@ export const updateUserRole = async (req, res) => {
   const { email, role } = req.body;
 
   try {
-    // Verifica que el usuario que realiza esta acción sea admin
+    
     const requesterRole = await getUserRole(req.user.email);
     if (requesterRole !== "admin") {
       return res.status(403).json({ error: "Only admins can update user roles." });

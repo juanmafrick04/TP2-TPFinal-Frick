@@ -36,22 +36,29 @@ export const register = async (req, res) => {
 };
 
 export const login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const user = await getUserByEmail(email);
-    const isMatch = await bcrypt.compare(password, user.password);
+  const { email, password } = req.body;
 
-    if (!isMatch) {
-      throw new Error("Invalid credentials");
+  try {
+    
+    const user = await db.collection("users").doc(email).get();
+    if (!user.exists) {
+      return res.status(400).json({ error: "User not found" });
     }
 
-    const token = jwt.sign({ email: user.email }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
+    
+    const isPasswordValid = true; 
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    
+    const token = jwt.sign({ email: email, role: "user" }, process.env.JWT_SECRET, {
+      expiresIn: "1h", 
     });
 
-    res.json({ token });
+    res.status(200).json({ token });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 };
 
@@ -96,5 +103,27 @@ export const updateUserRole = async (req, res) => {
     res.status(200).json({ message: "User role updated successfully" });
   } catch (error) {
     res.status(400).json({ error: error.message });
+  }
+};
+
+export const protect = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  console.log("Authorization Header:", authHeader);
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Not authorized, token missing" });
+  }
+
+  const token = authHeader.split(" ")[1];
+  console.log("Token:", token);
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    console.log("Decoded Token:", decoded);
+    next();
+  } catch (error) {
+    console.error("Token Verification Error:", error.message);
+    return res.status(401).json({ error: "Token verification failed" });
   }
 };

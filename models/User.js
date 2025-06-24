@@ -1,34 +1,40 @@
-import db from "../config/firebase.js";
-import bcrypt from "bcryptjs";
+import {DataTypes, Model} from "sequelize";
+import bcrypt from "bcrypt";
+import {dbConnection} from "../dbConnection/dbConnection.js";
 
-const USERS_COLLECTION = "users";
+class User extends Model{
+    async validatePassword(password) {
+        const result = await bcrypt.compare(password, this.password);
+        return result
+    }
+}
 
-export const registerUser = async (userData) => {
-  const userRef = db.collection(USERS_COLLECTION).doc(userData.email);
-  const userDoc = await userRef.get();
+User.init({
+   userName: {
+    type: DataTypes.STRING,
+    allowNull: false
+   },
+   mail: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true
+   },
+   password: {
+    type: DataTypes.STRING,
+    allowNull: false
+   },
+},
+{
+    sequelize:dbConnection,
+    modelName:"User",
+}
+);
 
-  if (userDoc.exists) {
-    throw new Error("User already exists");
-  }
 
-  const hashedPassword = await bcrypt.hash(userData.password, 10);
-  await userRef.set({ ...userData, password: hashedPassword });
-  return { message: "User registered successfully" };
-};
+User.beforeCreate(async(user,options)=>{
+    const salt = await bcrypt.genSalt();
+    const hashedPassword = await bcrypt.hash(user.password, salt);
+    user.password = hashedPassword;
+});
 
-export const getUserByEmail = async (email) => {
-  const userDoc = await db.collection(USERS_COLLECTION).doc(email).get();
-  if (!userDoc.exists) {
-    throw new Error("User not found");
-  }
-  return userDoc.data();
-};
-
-export const getUserRole = async (email) => {
-  const userDoc = await db.collection(USERS_COLLECTION).doc(email).get();
-  if (!userDoc.exists) {
-    throw new Error("User not found");
-  }
-  return userDoc.data().role;
-};
-
+export default User;
